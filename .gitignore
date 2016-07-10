@@ -9,10 +9,21 @@
 *.o
 
 # Compiled Static and Dynamic libraries
-*.a *.so
+*.a
+*.so
+*.dylib
+*.dSYM
 
 # Make dependencies
 .depend.mk
 
 # /src/
 /src/config.mk
+
+# backups
+*~
+*.bak
+project.xcworkspace
+
+# swp files
+*.swp

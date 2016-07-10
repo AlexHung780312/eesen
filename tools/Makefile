@@ -7,6 +7,8 @@ CXXFLAGS = -O2
 # OPENFST_VERSION = 1.3.4
 # Uncomment the next line to build with OpenFst-1.4.1.
 OPENFST_VERSION = 1.4.1
+# Or with OpenFst-1.5.1
+# OPENFST_VERSION = 1.5.1
 # Note: OpenFst >= 1.4 requires C++11 support, hence you will need to use a
 # relatively recent C++ compiler, e.g. gcc >= 4.6, clang >= 3.0.
 
@@ -19,11 +21,13 @@ ifeq ($(OPENFST_VERSION), 1.3.4)
     CXXFLAGS += -stdlib=libstdc++
     LDFLAGS += -stdlib=libstdc++
   endif
+else ifeq ($(OPENFST_VERSION), 1.4.1)
+
+else ifeq ($(OPENFST_VERSION), 1.5.1)
+
 else
-  ifneq ($(OPENFST_VERSION), 1.4.1)
-    $(error OpenFst version $(OPENFST_VERSION) is not supported. \
-            Supported versions: 1.3.4, 1.4.1)
-  endif
+  $(error OpenFst version $(OPENFST_VERSION) is not supported. \
+    Supported versions: 1.3.4, 1.4.1, 1.5.1)
 endif
 
 all: check_required_programs sph2pipe atlas sclite openfst
@@ -77,14 +81,20 @@ openfst-$(OPENFST_VERSION)/Makefile: openfst-$(OPENFST_VERSION)/.patched
 ifeq ($(OSTYPE),cygwin)
 	cd openfst-$(OPENFST_VERSION)/; ./configure --prefix=`pwd` --enable-static --enable-shared --enable-far --enable-ngram-fsts CXX=$(CXX) CXXFLAGS="$(CXXFLAGS) -O" LDFLAGS="$(LDFLAGS)" LIBS="-ldl"
 else
+  ifeq ($(OPENFST_VERSION), 1.5.1)
 	cd openfst-$(OPENFST_VERSION)/; ./configure --prefix=`pwd` --enable-static --enable-shared --enable-far --enable-ngram-fsts CXX=$(CXX) CXXFLAGS="$(CXXFLAGS)" LDFLAGS="$(LDFLAGS)" LIBS="-ldl"
+  else
+	cd openfst-$(OPENFST_VERSION)/; ./configure --prefix=`pwd` --enable-static --enable-shared --enable-far --enable-ngram-fsts CXX=$(CXX) CXXFLAGS="$(CXXFLAGS)" LDFLAGS="$(LDFLAGS)" LIBS="-ldl"
+  endif
 endif
 
 # patches for openfst. openfst_gcc41up.patch is a patch for openfst to \
 # support multi-threads when compile with g++ (gcc) version above 4.1
 openfst-$(OPENFST_VERSION)/.patched: | openfst-$(OPENFST_VERSION)
 	-cd openfst-$(OPENFST_VERSION)/src/include/fst; \
+	[ ! -f ../../../../extras/openfst-$(OPENFST_VERSION).patch ] || \
 	patch -p0 -N < ../../../../extras/openfst-$(OPENFST_VERSION).patch;
+	[ ! -f ../../../../extras/openfst-$(OPENFST_VERSION).patch ] || \
 	$(CXX) -dumpversion | awk '{if(NR==1 && $$1>"4.1") print "cd openfst-$(OPENFST_VERSION)/src/include/fst; patch -p0 -N < ../../../../extras/openfst_gcc41up.patch"}' | sh -
 	touch $@
 
@@ -92,7 +102,7 @@ openfst-$(OPENFST_VERSION): openfst-$(OPENFST_VERSION).tar.gz
 	tar xozf openfst-$(OPENFST_VERSION).tar.gz
 
 openfst-$(OPENFST_VERSION).tar.gz:
-	wget http://openfst.cs.nyu.edu/twiki/pub/FST/FstDownload/openfst-$(OPENFST_VERSION).tar.gz || \
+	wget -q http://openfst.cs.nyu.edu/twiki/pub/FST/FstDownload/openfst-$(OPENFST_VERSION).tar.gz || \
 	curl -s http://openfst.cs.nyu.edu/twiki/pub/FST/FstDownload/openfst-$(OPENFST_VERSION).tar.gz -o openfst-$(OPENFST_VERSION).tar.gz || \
 	wget -T 10 -t 3 http://www.openslr.org/resources/2/openfst-$(OPENFST_VERSION).tar.gz
 
@@ -115,7 +125,7 @@ sctk: sctk-2.4.9-20141015-1634Z.tar.bz2
 	rm -rf sctk && ln -s sctk-2.4.9 sctk
 
 sctk-2.4.9-20141015-1634Z.tar.bz2:
-	wget -T 10 -t 3 ftp://jaguar.ncsl.nist.gov/pub/sctk-2.4.9-20141015-1634Z.tar.bz2 || \
+	wget -q -T 10 -t 3 ftp://jaguar.ncsl.nist.gov/pub/sctk-2.4.9-20141015-1634Z.tar.bz2 || \
 	curl -s ftp://jaguar.ncsl.nist.gov/pub/sctk-2.4.9-20141015-1634Z.tar.bz2 -o sctk-2.4.9-20141015-1634Z.tar.bz2 || \
 	wget --no-check-certificate -T 10 http://www.openslr.org/resources/4/sctk-2.4.9-20141015-1634Z.tar.bz2
 
@@ -126,7 +136,7 @@ ATLAS/include/cblas.h: | atlas3.8.3.tar.gz
 	tar xozf atlas3.8.3.tar.gz ATLAS/include
 
 atlas3.8.3.tar.gz:
-	wget -T 10 ftp://ftp.vim.org/vol/2/metalab/distributions/tinycorelinux/2.x/tce/src/libatlas/atlas3.8.3.tar.gz || \
+	wget -q -T 10 ftp://ftp.vim.org/vol/2/metalab/distributions/tinycorelinux/2.x/tce/src/libatlas/atlas3.8.3.tar.gz || \
 	curl -s ftp://ftp.vim.org/vol/2/metalab/distributions/tinycorelinux/2.x/tce/src/libatlas/atlas3.8.3.tar.gz -o atlas3.8.3.tar.gz || \
 	wget -T 10 http://sourceforge.net/projects/math-atlas/files/Stable/3.8.3/atlas3.8.3.tar.gz || \
 	wget --no-check-certificate -T 10 -t 3 http://www.danielpovey.com/files/kaldi/atlas3.8.3.tar.gz
@@ -143,7 +153,7 @@ sph2pipe_v2.5: sph2pipe_v2.5.tar.gz
 	tar xzf sph2pipe_v2.5.tar.gz
 
 sph2pipe_v2.5.tar.gz:
-	wget -T 10 -t 3 http://www.openslr.org/resources/3/sph2pipe_v2.5.tar.gz || \
+	wget -q -T 10 -t 3 http://www.openslr.org/resources/3/sph2pipe_v2.5.tar.gz || \
 	curl -s http://www.openslr.org/resources/3/sph2pipe_v2.5.tar.gz -o sph2pipe_v2.5.tar.gz || \
 	wget --no-check-certificate -T 10  https://sourceforge.net/projects/kaldi/files/sph2pipe_v2.5.tar.gz
 
