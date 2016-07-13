@@ -29,6 +29,8 @@
 #include "net/bilstm-parallel-layer.h"
 #include "net/lstm-layer.h"
 #include "net/lstm-parallel-layer.h"
+#include "net/nnet-convolutional-component.h"
+#include "net/nnet-max-pooling-component.h"
 
 #include <sstream>
 
@@ -43,6 +45,8 @@ const struct Layer::key_value Layer::kMarkerMap[] = {
   { Layer::l_Softmax,"<Softmax>" },
   { Layer::l_Sigmoid,"<Sigmoid>" },
   { Layer::l_Tanh,"<Tanh>" },
+  { Layer::l_Cnn1d,"<ConvolutionalComponent>" },
+  { Layer::l_MaxPool1d, "<MaxPoolingComponent>" },
 };
 
 
@@ -75,7 +79,7 @@ Layer* Layer::NewLayerOfType(LayerType layer_type,
   Layer *layer = NULL;
   switch (layer_type) {
     case Layer::l_Affine_Transform :
-      layer = new AffineTransform(input_dim, output_dim); 
+      layer = new AffineTransform(input_dim, output_dim);
       break;
     case Layer::l_BiLstm :
       layer = new BiLstm(input_dim, output_dim);
@@ -98,6 +102,12 @@ Layer* Layer::NewLayerOfType(LayerType layer_type,
     case Layer::l_Tanh :
       layer = new Tanh(input_dim, output_dim);
       break;
+    case Layer::l_Cnn1d :
+      layer = new ConvolutionalComponent(input_dim, output_dim);
+      break;
+    case Layer::l_MaxPool1d :
+      layer = new MaxPoolingComponent(input_dimm output_dim);
+      break;
     case Layer::l_Unknown :
     default :
       KALDI_ERR << "Missing type: " << TypeToMarker(layer_type);
@@ -109,7 +119,7 @@ Layer* Layer::Init(const std::string &conf_line) {
   std::istringstream is(conf_line);
   std::string layer_type_string;
   int32 input_dim, output_dim;
- 
+
   // initialize layer
   ReadToken(is, false, &layer_type_string);
   LayerType layer_type = MarkerToType(layer_type_string);
@@ -156,7 +166,7 @@ Layer* Layer::Read(std::istream &is, bool binary) {
     ExpectToken(is, binary, "<OutputDim>");
   }
   ReadBasicType(is, binary, &dim_out);
-  
+
   Layer *layer = NewLayerOfType(MarkerToType(token), dim_in, dim_out);
   layer->ReadData(is, binary);
   return layer;
@@ -172,7 +182,7 @@ void Layer::ReRead(std::istream &is, bool binary) {
   ReadToken(is, binary, &token);
   // Finish reading when optional terminal token appears
   if(token == "</Nnet>") return;
-  
+
   // Skip optional initial token
   if(token == "<Nnet>") {
     ReadToken(is, binary, &token);
@@ -189,7 +199,7 @@ void Layer::ReRead(std::istream &is, bool binary) {
 
   KALDI_ASSERT(dim_in == input_dim_);
   KALDI_ASSERT(dim_out == output_dim_);
-  
+
   this->ReadData(is, binary);
 }
 
